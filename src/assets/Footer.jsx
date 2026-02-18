@@ -15,13 +15,6 @@ export default function Footer() {
           {/* Center Links */}
           <div className="small d-flex gap-3 mb-2 mb-md-0">
             <Link
-              to="/tasks"
-              className="text-light text-decoration-underline"
-            >
-              Tasks
-            </Link>
-
-            <Link
               to="/notes"
              className="text-light text-decoration-underline"
             >

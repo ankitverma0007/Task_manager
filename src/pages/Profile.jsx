@@ -1,16 +1,15 @@
 import { useState } from "react";
-import ConfirmModal from "../assets/ConfirmModal";
 
 export default function Profile({
   user,
+  loading,
   handleLogout,
   handleDeleteAccount,
   handleDeleteAllNotes,
-  handleDeleteAllTasks,
   handleChangePassword,
 }) {
-  const [modalConfig, setModalConfig] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -18,40 +17,86 @@ export default function Profile({
     confirmPassword: "",
   });
 
-  const openModal = (title, message, action) => {
-    setModalConfig({ title, message, action });
-  };
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
-  const handlePasswordSubmit = () => {
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+
+  // CHANGE PASSWORD
+
+  const handlePasswordSubmit = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+
     if (
       !passwordData.currentPassword ||
       !passwordData.newPassword ||
       !passwordData.confirmPassword
     ) {
-      alert("All fields are required.");
+      setPasswordError("All fields are required.");
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("Passwords do not match.");
+      setPasswordError("Passwords do not match.");
       return;
     }
 
-    handleChangePassword(passwordData);
+    try {
+      setPasswordLoading(true);
 
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      await handleChangePassword(passwordData);
 
-    setShowPasswordModal(false);
+      setPasswordSuccess("Password updated successfully!");
+
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordSuccess("");
+      }, 1200);
+    } catch (err) {
+      setPasswordError(
+        err?.response?.data?.message || "Failed to update password."
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+
+  // DELETE ACCOUNT
+  const confirmDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError("Password is required.");
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      await handleDeleteAccount(deletePassword);
+      setShowDeleteModal(false);
+    } catch (err) {
+      setDeleteError(
+        err?.response?.data?.message || "Failed to delete account."
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
     <div className="container py-5" style={{ maxWidth: "850px" }}>
-
-      {/* Page Header */}
+      
+      {/* HEADER */}
       <div className="mb-5">
         <h2 className="fw-bold">Settings</h2>
         <p className="text-muted">
@@ -59,10 +104,9 @@ export default function Profile({
         </p>
       </div>
 
-      {/* Profile Card */}
+      {/* PROFILE CARD */}
       <div className="card border-0 shadow-sm rounded-4 mb-4">
         <div className="card-body p-4 d-flex align-items-center">
-
           <div
             className="rounded-circle bg-dark text-white d-flex justify-content-center align-items-center me-4"
             style={{ width: "70px", height: "70px", fontSize: "1.5rem" }}
@@ -74,10 +118,10 @@ export default function Profile({
             <h5 className="mb-1 fw-semibold">{user?.name}</h5>
             <p className="text-muted mb-0 small">{user?.email}</p>
           </div>
-
         </div>
       </div>
-      {/* Data Management */}
+
+      {/* DATA MANAGEMENT */}
       <div className="card border-0 shadow-sm rounded-4 mb-4">
         <div className="card-body p-4">
           <h6 className="text-uppercase text-muted small mb-4">
@@ -91,38 +135,11 @@ export default function Profile({
                 Permanently remove all your notes.
               </small>
             </div>
+
             <button
               className="btn btn-outline-warning btn-sm"
-              onClick={() =>
-                openModal(
-                  "Delete All Notes",
-                  "This will permanently delete all notes.",
-                  handleDeleteAllNotes
-                )
-              }
-            >
-              Delete
-            </button>
-          </div>
-
-          <hr />
-
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 className="mb-1">Delete All Tasks</h6>
-              <small className="text-muted">
-                Permanently remove all your tasks.
-              </small>
-            </div>
-            <button
-              className="btn btn-outline-warning btn-sm"
-              onClick={() =>
-                openModal(
-                  "Delete All Tasks",
-                  "This will permanently delete all tasks.",
-                  handleDeleteAllTasks
-                )
-              }
+              onClick={handleDeleteAllNotes}
+              disabled={loading}
             >
               Delete
             </button>
@@ -130,7 +147,7 @@ export default function Profile({
         </div>
       </div>
 
-      {/* Account Section */}
+      {/* ACCOUNT */}
       <div className="card border-0 shadow-sm rounded-4 mb-4">
         <div className="card-body p-4">
           <h6 className="text-uppercase text-muted small mb-4">
@@ -144,6 +161,7 @@ export default function Profile({
                 Update your account password securely.
               </small>
             </div>
+
             <button
               className="btn btn-outline-primary btn-sm"
               onClick={() => setShowPasswordModal(true)}
@@ -161,15 +179,10 @@ export default function Profile({
                 Sign out from your account.
               </small>
             </div>
+
             <button
               className="btn btn-outline-secondary btn-sm"
-              onClick={() =>
-                openModal(
-                  "Confirm Logout",
-                  "Are you sure you want to logout?",
-                  handleLogout
-                )
-              }
+              onClick={handleLogout}
             >
               Logout
             </button>
@@ -177,7 +190,7 @@ export default function Profile({
         </div>
       </div>
 
-      {/* Danger Zone */}
+      {/* DANGER ZONE */}
       <div className="card border-danger border-2 rounded-4 mb-5">
         <div className="card-body p-4">
           <h6 className="text-danger text-uppercase small mb-4">
@@ -191,18 +204,14 @@ export default function Profile({
                 Permanently delete your account and all associated data.
               </small>
             </div>
+
             <button
               className="btn btn-danger btn-sm"
-              onClick={() =>
-                openModal(
-                  "Delete Account",
-                  "This action cannot be undone.",
-                  () => {
-                    handleDeleteAccount();
-                    handleLogout();
-                  }
-                )
-              }
+              onClick={() => {
+                setDeletePassword("");
+                setDeleteError("");
+                setShowDeleteModal(true);
+              }}
             >
               Delete Account
             </button>
@@ -210,43 +219,7 @@ export default function Profile({
         </div>
       </div>
 
-      {/* Contact Footer */}
-      <footer className="pt-4 border-top text-center text-muted small">
-        <h6 className="fw-semibold mb-2">Contact Us</h6>
-
-        <p className="mb-1">
-          Need help? Reach out to our support team.
-        </p>
-
-        <p className="mb-2">
-          <a
-            href="mailto:support@notebookapp.com"
-            className="text-decoration-none"
-          >
-            support@notebookapp.com
-          </a>
-        </p>
-
-        <small>
-          © {new Date().getFullYear()} Notebook App. All rights reserved.
-        </small>
-      </footer>
-
-      {/* Confirm Modal */}
-      {modalConfig && (
-        <ConfirmModal
-          show={true}
-          title={modalConfig.title}
-          message={modalConfig.message}
-          onCancel={() => setModalConfig(null)}
-          onConfirm={() => {
-            modalConfig.action();
-            setModalConfig(null);
-          }}
-        />
-      )}
-
-      {/* Change Password Modal */}
+      {/* CHANGE PASSWORD MODAL */}
       {showPasswordModal && (
         <div className="modal d-block bg-dark bg-opacity-50">
           <div className="modal-dialog modal-dialog-centered">
@@ -257,10 +230,22 @@ export default function Profile({
                 <button
                   className="btn-close"
                   onClick={() => setShowPasswordModal(false)}
-                ></button>
+                />
               </div>
 
               <div className="modal-body">
+
+                {passwordError && (
+                  <div className="alert alert-danger py-2">
+                    {passwordError}
+                  </div>
+                )}
+
+                {passwordSuccess && (
+                  <div className="alert alert-success py-2">
+                    {passwordSuccess}
+                  </div>
+                )}
 
                 <input
                   type="password"
@@ -300,7 +285,6 @@ export default function Profile({
                     })
                   }
                 />
-
               </div>
 
               <div className="modal-footer border-0">
@@ -314,8 +298,9 @@ export default function Profile({
                 <button
                   className="btn btn-primary"
                   onClick={handlePasswordSubmit}
+                  disabled={passwordLoading}
                 >
-                  Update Password
+                  {passwordLoading ? "Updating..." : "Update Password"}
                 </button>
               </div>
 
@@ -324,6 +309,61 @@ export default function Profile({
         </div>
       )}
 
+      {/* DELETE ACCOUNT MODAL */}
+      {showDeleteModal && (
+        <div className="modal d-block bg-dark bg-opacity-50">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 border-0 shadow-lg">
+
+              <div className="modal-header border-0">
+                <h5 className="fw-bold text-danger">Delete Account</h5>
+                <button
+                  className="btn-close"
+                  onClick={() => setShowDeleteModal(false)}
+                />
+              </div>
+
+              <div className="modal-body">
+                <div className="alert alert-warning small">
+                  This action is permanent and cannot be undone.
+                </div>
+
+                {deleteError && (
+                  <div className="alert alert-danger py-2">
+                    {deleteError}
+                  </div>
+                )}
+
+                <input
+                  type="password"
+                  className="form-control"
+                  placeholder="Enter your password to confirm"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-footer border-0">
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="btn btn-danger"
+                  onClick={confirmDeleteAccount}
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? "Deleting..." : "Delete Account"}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

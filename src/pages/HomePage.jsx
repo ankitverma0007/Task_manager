@@ -12,7 +12,7 @@ export default function HomePage({isLoggedIn, handleLogout}) {
       <div className="mx-5 my-4">
         
         <h2 className="mx-5">Stay Focused, Stay Organized!</h2>
-        <div className="mx-5 fs-5">Manage your daily notes and tasks without distractions. — all in one place.</div>
+        <div className="mx-5 fs-5">Manage your daily noteswithout distractions. — all in one place.</div>
 
         <div className="container my-4">
           <div id="carouselExampleSlidesOnly" className="carousel slide" data-bs-ride="carousel" data-bs-pause="hover" data-bs-interval="3000">
@@ -28,8 +28,8 @@ export default function HomePage({isLoggedIn, handleLogout}) {
               </div>
               <div className="carousel-caption d-flex flex-column justify-content-center" 
               style={{background: 'rgba(0, 0, 0, 0.45)',borderRadius: '10px',padding: '20px'}}>
-                <h3>A simpler way to manage your thoughts and to-dos</h3>
-                <p>All your notes and tasks, thoughtfully organized. Designed to help you focus and get more done every day.</p>
+                <h3>A simpler way to manage your thoughts</h3>
+                <p>All your notes, thoughtfully organized. Designed to help you focus and get more done every day.</p>
               </div>
             </div>
           </div>
@@ -38,8 +38,8 @@ export default function HomePage({isLoggedIn, handleLogout}) {
         <div className="card mx-5" style={{ backgroundColor: 'rgba(53, 78, 99, 0.34)' }}>
           <div className="card-body">
             <h5 className="card-title">Start organizing your ideas today...</h5>
-            <p className="card-text">NoteBook! is a simple productivity app made to help you keep your notes and tasks in one easy place. Instead of juggling multiple tools, everything you need is brought together in a clean, intuitive interface. It helps you plan your day, stay organized, and get things done—without feeling overwhelmed.
-              <br/>Create your account and take control of your notes and tasks.</p>
+            <p className="card-text">NoteBook! is a simple productivity app made to help you keep your notes  in one easy place. Instead of juggling multiple tools, everything you need is brought together in a clean, intuitive interface. It helps you plan your day, stay organized, and get things done—without feeling overwhelmed.
+              <br/>Create your account and take control of your notes.</p>
             
             {isLoggedIn ? (
                     <p className='fs-5'>“You’re signed in — jump back into your work.”</p>

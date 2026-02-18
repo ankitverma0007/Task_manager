@@ -1,122 +1,183 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import API from "../api/api";
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
+
   const [currentNote, setCurrentNote] = useState({
-    id: null,
+    _id: null,
     title: "",
-    content: "",
+    description: "",
   });
 
   const [errors, setErrors] = useState({
     title: false,
-    content: false,
+    description: false,
   });
 
-  // Open Add Modal
+  // ================= FETCH NOTES =================
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const fetchNotes = async () => {
+    try {
+      setLoading(true);
+      const res = await API.get("/note");
+      setNotes(res.data);
+    } catch {
+      alert("Failed to load notes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ================= OPEN MODALS =================
   const handleOpenAdd = () => {
-    setCurrentNote({ id: null, title: "", content: "" });
-    setErrors({ title: false, content: false });
+    setCurrentNote({ _id: null, title: "", description: "" });
+    setErrors({ title: false, description: false });
     setShowModal(true);
   };
 
-  // Open Edit Modal
   const handleOpenEdit = (note) => {
     setCurrentNote(note);
-    setErrors({ title: false, content: false });
+    setShowViewer(false);
     setShowModal(true);
   };
 
-  // Open Viewer
   const handleOpenViewer = (note) => {
     setCurrentNote(note);
     setShowViewer(true);
   };
 
-  // Save Note with Validation
-  const handleSaveNote = () => {
+  // ================= SAVE NOTE =================
+  const handleSaveNote = async () => {
     const titleEmpty = !currentNote.title.trim();
-    const contentEmpty = !currentNote.content.trim();
+    const descEmpty = !currentNote.description.trim();
 
-    setErrors({
-      title: titleEmpty,
-      content: contentEmpty,
-    });
+    setErrors({ title: titleEmpty, description: descEmpty });
+    if (titleEmpty || descEmpty) return;
 
-    if (titleEmpty || contentEmpty) return;
+    try {
+      setLoading(true);
 
-    if (currentNote.id) {
-      setNotes(notes.map(n =>
-        n.id === currentNote.id ? currentNote : n
-      ));
-    } else {
-      const newNote = {
-        ...currentNote,
-        id: Date.now(),
-        createdAt: new Date(),
-      };
-      setNotes([newNote, ...notes]);
+      if (currentNote._id) {
+        const res = await API.put(`/note/${currentNote._id}`, {
+          title: currentNote.title,
+          description: currentNote.description,
+        });
+
+        setNotes((prev) =>
+          prev.map((n) =>
+            n._id === currentNote._id ? res.data : n
+          )
+        );
+      } else {
+        const res = await API.post("/note", {
+          title: currentNote.title,
+          description: currentNote.description,
+        });
+
+        setNotes((prev) => [res.data, ...prev]);
+      }
+
+      setShowModal(false);
+    } catch {
+      alert("Failed to save note");
+    } finally {
+      setLoading(false);
     }
-
-    setShowModal(false);
   };
 
-  // Delete Note
-  const handleDelete = (id) => {
-    setNotes(notes.filter(n => n.id !== id));
+  // ================= DELETE NOTE =================
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/note/${id}`);
+      setNotes((prev) => prev.filter((n) => n._id !== id));
+      setShowViewer(false);
+    } catch {
+      alert("Failed to delete note");
+    }
   };
 
   return (
-    <div className="container py-5">
-
-      {/* Header */}
+    <div
+      className="container py-5"
+      style={{ maxWidth: "1100px" }}
+    >
+      {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
-          <h2 className="fw-bold mb-1">Notes</h2>
-          <p className="text-muted small mb-0">
-            Clean. Focused. Distraction-free writing.
+          <h2 className="fw-bold mb-1">Your Notes</h2>
+          <p className="text-muted mb-0 small">
+            Organize your ideas. Stay focused.
           </p>
         </div>
 
-        <button className="btn btn-dark px-4" onClick={handleOpenAdd}>
+        <button
+          className="btn btn-dark px-4 py-2 rounded-3 shadow-sm"
+          onClick={handleOpenAdd}
+        >
           + New Note
         </button>
       </div>
 
-      {/* Notes Grid */}
-      {notes.length === 0 ? (
-        <div className="text-center text-muted mt-5">
-          <h5>No notes yet</h5>
+      {/* LOADING */}
+      {loading && (
+        <div className="text-center my-5">
+          <div className="spinner-border text-dark"></div>
         </div>
-      ) : (
-        <div className="row g-4">
-          {notes.map(n => {
-            const preview =
-              n.content.length > 150
-                ? n.content.substring(0, 150) + "..."
-                : n.content;
+      )}
 
-            const date = new Date(n.createdAt);
+      {/* EMPTY STATE */}
+      {!loading && notes.length === 0 && (
+        <div className="text-center mt-5">
+          <div className="py-5">
+            <h5 className="fw-semibold">No notes yet</h5>
+            <p className="text-muted">
+              Click “New Note” to create your first one.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* NOTES GRID */}
+      {!loading && notes.length > 0 && (
+        <div className="row g-4">
+          {notes.map((n) => {
+            const preview =
+              n.description.length > 140
+                ? n.description.substring(0, 140) + "..."
+                : n.description;
 
             return (
-              <div key={n.id} className="col-md-6 col-lg-4">
+              <div key={n._id} className="col-md-6 col-lg-4">
                 <div
-                  className="card h-100 border-0 shadow-sm rounded-4 p-4"
-                  style={{ cursor: "pointer" }}
+                  className="card border-0 shadow-sm rounded-4 p-4 h-100"
+                  style={{
+                    transition: "all 0.2s ease",
+                    cursor: "pointer",
+                  }}
                   onClick={() => handleOpenViewer(n)}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "translateY(-4px)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "translateY(0px)")
+                  }
                 >
-                  <h5 className="fw-semibold mb-3">
-                    {n.title}
-                  </h5>
+                  <h5 className="fw-semibold mb-3">{n.title}</h5>
 
                   <p className="text-muted small flex-grow-1">
                     {preview}
                   </p>
 
                   <div className="small text-secondary mt-3">
-                    {date.toLocaleDateString()}
+                    {new Date(n.createdAt).toLocaleDateString()}
                   </div>
                 </div>
               </div>
@@ -125,15 +186,15 @@ export default function Notes() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* ADD / EDIT MODAL */}
       {showModal && (
         <div className="modal d-block bg-dark bg-opacity-50">
           <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content rounded-4 border-0 shadow-lg">
+            <div className="modal-content border-0 rounded-4 shadow-lg p-4">
 
-              <div className="modal-header border-0 px-4 py-3">
-                <h5 className="modal-title fw-bold">
-                  {currentNote.id ? "Edit Note" : "Create Note"}
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="fw-bold mb-0">
+                  {currentNote._id ? "Edit Note" : "Create Note"}
                 </h5>
                 <button
                   className="btn-close"
@@ -141,155 +202,130 @@ export default function Notes() {
                 ></button>
               </div>
 
-              <div className="modal-body px-4 py-4">
+              <input
+                type="text"
+                className={`form-control mb-3 ${
+                  errors.title ? "is-invalid" : ""
+                }`}
+                placeholder="Title"
+                value={currentNote.title}
+                onChange={(e) =>
+                  setCurrentNote({
+                    ...currentNote,
+                    title: e.target.value,
+                  })
+                }
+              />
 
-                {/* Title Input */}
-                <input
-                  type="text"
-                  className={`form-control form-control-lg mb-1 ${
-                    errors.title ? "is-invalid" : ""
-                  }`}
-                  placeholder="Title"
-                  value={currentNote.title}
-                  onChange={(e) => {
-                    setCurrentNote({
-                      ...currentNote,
-                      title: e.target.value,
-                    });
-                    setErrors({ ...errors, title: false });
-                  }}
-                />
+              <textarea
+                className={`form-control ${
+                  errors.description ? "is-invalid" : ""
+                }`}
+                rows="7"
+                placeholder="Write your note..."
+                value={currentNote.description}
+                onChange={(e) =>
+                  setCurrentNote({
+                    ...currentNote,
+                    description: e.target.value,
+                  })
+                }
+              ></textarea>
 
-                {errors.title && (
-                  <div className="invalid-feedback d-block">
-                    Title is required.
-                  </div>
-                )}
-
-                {/* Content Input */}
-                <textarea
-                  className={`form-control mt-4 mb-1 ${
-                    errors.content ? "is-invalid" : ""
-                  }`}
-                  rows="8"
-                  placeholder="Write your note..."
-                  value={currentNote.content}
-                  onChange={(e) => {
-                    setCurrentNote({
-                      ...currentNote,
-                      content: e.target.value,
-                    });
-                    setErrors({ ...errors, content: false });
-                  }}
-                ></textarea>
-
-                {errors.content && (
-                  <div className="invalid-feedback d-block">
-                    Content cannot be empty.
-                  </div>
-                )}
-
-              </div>
-
-              <div className="modal-footer border-0 px-4 py-3">
+              <div className="text-end mt-4">
                 <button
-                  className="btn btn-outline-secondary"
+                  className="btn btn-outline-secondary me-2"
                   onClick={() => setShowModal(false)}
                 >
                   Cancel
                 </button>
 
                 <button
-                  className="btn btn-dark"
+                  className="btn btn-dark px-4"
                   onClick={handleSaveNote}
                 >
                   Save
                 </button>
               </div>
-
             </div>
           </div>
         </div>
       )}
 
-      {/* Professional Full Viewer */}
-      {showViewer && (
-        <div className="modal d-block bg-dark bg-opacity-75">
-          <div className="modal-dialog modal-xl modal-dialog-centered">
-            <div className="modal-content border-0 rounded-4 shadow-lg">
+      {/* VIEWER MODAL */}
+{showViewer && (
+  <div
+    className="modal d-block"
+    style={{
+      background: "rgba(0,0,0,0.65)",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    <div className="modal-dialog modal-xl modal-dialog-centered">
+      <div
+        className="modal-content border-0 rounded-4 shadow-lg p-5"
+        style={{
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        {/* TITLE */}
+        <div className="text-center mb-4">
+          <h2 className="fw-bold mb-2">
+            {currentNote.title}
+          </h2>
 
-              <div className="modal-header border-0 px-5 pt-5 pb-3 position-relative">
-                <div className="w-100 text-center">
-                  <h2 className="fw-bold mb-2" style={{ fontSize: "2rem" }}>
-                    {currentNote.title}
-                  </h2>
-
-                  <p className="text-muted small mb-0">
-                    {new Date(currentNote.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <button
-                  className="btn-close position-absolute top-0 end-0 m-4"
-                  onClick={() => setShowViewer(false)}
-                ></button>
-              </div>
-
-              <div
-                className="modal-body px-5 pb-5"
-                style={{
-                  maxHeight: "65vh",
-                  overflowY: "auto",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "1.1rem",
-                    lineHeight: "1.9",
-                    color: "#333",
-                    whiteSpace: "pre-line",
-                    maxWidth: "800px",
-                    margin: "0 auto",
-                  }}
-                >
-                  {currentNote.content}
-                </div>
-              </div>
-
-              <div className="modal-footer border-0 px-5 pb-5 d-flex justify-content-center gap-3">
-                <button
-                  className="btn btn-outline-secondary px-4"
-                  onClick={() => {
-                    setShowViewer(false);
-                    handleOpenEdit(currentNote);
-                  }}
-                >
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-
-                <button
-                  className="btn btn-outline-danger px-4"
-                  onClick={() => {
-                    handleDelete(currentNote.id);
-                    setShowViewer(false);
-                  }}
-                >
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-
-                <button
-                  className="btn btn-dark px-4"
-                  onClick={() => setShowViewer(false)}
-                >
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-
-            </div>
-          </div>
+          <small className="text-muted">
+            {new Date(currentNote.createdAt).toLocaleDateString()}
+          </small>
         </div>
-      )}
 
+        {/* LARGE READER AREA */}
+        <div
+          className="mx-auto"
+          style={{
+            maxWidth: "900px",
+            fontSize: "1.15rem",
+            lineHeight: "2",
+            color: "#333",
+            whiteSpace: "pre-line",
+            maxHeight: "60vh",
+            overflowY: "auto",
+          }}
+        >
+          {currentNote.description}
+        </div>
+
+        {/* CENTERED BUTTONS */}
+        <div className="d-flex justify-content-center gap-3 mt-5">
+
+          <button
+            className="btn btn-outline-primary px-4 rounded-pill"
+            onClick={() => handleOpenEdit(currentNote)}
+          >
+            Edit
+          </button>
+
+          <button
+            className="btn btn-outline-danger px-4 rounded-pill"
+            onClick={() => handleDelete(currentNote._id)}
+          >
+            Delete
+          </button>
+
+          <button
+            className="btn btn-dark px-4 rounded-pill"
+            onClick={() => setShowViewer(false)}
+          >
+            Close
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

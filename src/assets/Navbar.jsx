@@ -32,16 +32,9 @@ export default function Navbar({ title, isLoggedIn}) {
               {isLoggedIn && (
                 <>
                   <li className="nav-item">
-                    <Link className="nav-link text-white fw-medium mx-4" to="/notes">
+                    <Link className="btn btn-dark mx-4" to="/notes">
                       <i className="fa-solid fa-notes-medical me-1"></i>
                       Notes
-                    </Link>
-                  </li>
-
-                  <li className="nav-item">
-                    <Link className="nav-link text-white fw-medium mx-4" to="/tasks">
-                      <i className="fa-solid fa-list-check me-1"></i>
-                      Tasks
                     </Link>
                   </li>
                 </>
@@ -55,7 +48,7 @@ export default function Navbar({ title, isLoggedIn}) {
                     <i className="fa-solid fa-gear"></i>Account
                   </Link>
                 ) : (
-                  <Link className="nav-link text-white fw-medium" to="/login">
+                  <Link className="btn btn-dark" to="/login">
                     <i className="fa-solid fa-user me-1"></i>
                     Login
                   </Link>
